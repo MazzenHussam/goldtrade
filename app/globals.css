@@ -1,42 +1,56 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  --gold-primary: #D4AF37;
+  --gold-dark: #aa8a2e;
+  --dark-bg: #121212;
+  --light-text: #f8f9fa;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background-color: #ffffff; /* Clean white background for the shop */
+  color: #333;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* Custom Gold Button */
+.btn-gold {
+  background-color: var(--gold-primary);
+  color: white;
+  border: none;
+  font-weight: bold;
+  transition: 0.3s;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.btn-gold:hover {
+  background-color: var(--gold-dark);
+  color: white;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.text-gold {
+  color: var(--gold-primary);
+}
+
+/* hover animation */
+
+.transition-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.transition-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* live price */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 30s linear infinite;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused; /* User can pause by hovering */
 }
