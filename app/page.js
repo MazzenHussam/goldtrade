@@ -1,10 +1,35 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/data/products"; // This is our single source of truth
+import { supabase } from "@/Lib/supabase"; // Import the client we created earlier
 
 export default function Home() {
-  // We take only the first 3 items from our data file to show on the Home page
-  const featuredProducts = products.slice(0, 3);
+  // 1. Initialize state as an empty array
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        // Postgres query: Get the 3 newest products
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (error) throw error;
+        setFeaturedProducts(data || []);
+      } catch (err) {
+        console.error("Error fetching from Postgres:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   return (
     <main>
@@ -28,19 +53,24 @@ export default function Home() {
           <h2 className="text-center fw-bold mb-5">
             Featured <span className="text-gold">Gold Ingots</span>
           </h2>
-          <div className="row g-4">
-            {featuredProducts.map((item) => (
-              <div key={item.id} className="col-md-4">
-                {/* Spreading the item ensures id, title, weight, and price are passed correctly */}
-                <ProductCard {...item} />
-              </div>
-            ))}
-          </div>
           
-          <div className="text-center mt-5">
-            <a href="/shop" className="btn btn-outline-gold px-4 py-2">
-              View All Products
-            </a>
+          <div className="row g-4">
+            {loading ? (
+              <div className="col-12 text-center">
+                <div className="spinner-border text-gold" role="status"></div>
+                <p className="mt-2">Loading live inventory from Postgres...</p>
+              </div>
+            ) : featuredProducts.length > 0 ? (
+              featuredProducts.map((item) => (
+                <div key={item.id} className="col-md-4">
+                  <ProductCard {...item} />
+                </div>
+              ))
+            ) : (
+              <div className="col-12 text-center">
+                <p className="text-muted">No products found in the database.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

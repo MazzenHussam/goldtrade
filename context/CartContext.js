@@ -1,50 +1,41 @@
 "use client";
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  // 1. Initialize state as empty array
   const [cartItems, setCartItems] = useState([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // 2. Load data once on mount
+  // Load from local storage on mount
   useEffect(() => {
+    setIsMounted(true);
     const savedCart = localStorage.getItem("gold_cart");
     if (savedCart) {
       try {
         setCartItems(JSON.parse(savedCart));
       } catch (e) {
-        console.error("Cart parse error");
+        console.error("Cart error", e);
       }
     }
-    setIsInitialized(true); // Mark as ready
   }, []);
 
-  // 3. Save to storage only AFTER initialization and when cart changes
+  // Sync to local storage
   useEffect(() => {
-    if (isInitialized) {
+    if (isMounted) {
       localStorage.setItem("gold_cart", JSON.stringify(cartItems));
     }
-  }, [cartItems, isInitialized]);
+  }, [cartItems, isMounted]);
 
   const addToCart = (product) => {
-    // Ensure product ID is a string to prevent "1" vs 1 bugs
-    const productId = String(product.id);
-
     setCartItems((prev) => {
-      const existing = prev.find((item) => String(item.id) === productId);
-
+      const existing = prev.find((item) => String(item.id) === String(product.id));
       if (existing) {
-        // Increment quantity if ID matches
         return prev.map((item) =>
-          String(item.id) === productId
-            ? { ...item, qty: item.qty + 1 }
-            : item
+          String(item.id) === String(product.id) ? { ...item, qty: item.qty + 1 } : item
         );
       }
-      // Add new item if ID is unique
-      return [...prev, { ...product, id: productId, qty: 1 }];
+      return [...prev, { ...product, qty: 1 }];
     });
   };
 
@@ -52,8 +43,34 @@ export function CartProvider({ children }) {
     setCartItems((prev) => prev.filter((item) => String(item.id) !== String(id)));
   };
 
+  // --- THIS IS THE MISSING PIECE FOR THE BUTTONS ---
+  const updateQty = (id, newQty) => {
+    if (newQty < 1) {
+      removeFromCart(id); // If qty goes to 0, remove the item
+      return;
+    }
+    setCartItems((prev) =>
+      prev.map((item) =>
+        String(item.id) === String(id) ? { ...item, qty: newQty } : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    localStorage.removeItem("gold_cart");
+  };
+
+  const value = useMemo(() => ({
+    cartItems,
+    addToCart,
+    removeFromCart,
+    updateQty, // Exported for the checkout page
+    clearCart
+  }), [cartItems]);
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart }}>
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );

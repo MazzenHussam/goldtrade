@@ -1,98 +1,75 @@
 "use client";
-
-import React, { use } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { supabase } from "@/Lib/supabase";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/context/CartContext";
-import { products } from "@/data/products"; // Import the single source of truth
 
-export default function ProductDetail({ params }) {
-  // Unwrap the params promise
-  const resolvedParams = use(params);
-  const id = resolvedParams?.id;
+export default function ProductDetails() {
+  const { id } = useParams(); // Get ID from URL
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
 
-  // Find the actual product data from our central file using the ID from the URL
-  const product = id ? products.find((p) => String(p.id) === String(id)): null;
+  useEffect(() => {
+    async function fetchProduct() {
+      // Postgres Query: SELECT * FROM products WHERE id = [id] LIMIT 1
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id) 
+        .single(); // We only want one item
 
-  // Fallback in case the user types a wrong ID in the URL
-  if (!product) {
-    return (
-      <main>
-        <Navbar />
-        <div className="container py-5 text-center">
-          <div className="spinner-border text-gold mb-3" role="status"></div>
-          <h3>Finding your gold...</h3>
-          <p className="text-muted">If this takes too long, the product might not exist.</p>
-          <a href="/shop" className="btn btn-outline-dark mt-3">Back to Shop</a>
-        </div>
-      </main>
-    );
-  }
+      if (!error) {
+        setProduct(data);
+      }
+      setLoading(false);
+    }
+
+    if (id) fetchProduct();
+  }, [id]);
+
+  if (loading) return <div className="text-center py-5">Loading Gold Details...</div>;
+  if (!product) return <div className="text-center py-5">Product not found.</div>;
 
   return (
-    <main>
+    <main className="bg-light min-vh-100">
       <Navbar />
       <div className="container py-5">
-        <nav aria-label="breadcrumb" className="mb-4">
-          <ol className="breadcrumb">
-            <li className="breadcrumb-item">
-              <a href="/shop" className="text-decoration-none text-muted">Shop</a>
-            </li>
-            <li className="breadcrumb-item active" aria-current="page">
-              {product.title}
-            </li>
-          </ol>
-        </nav>
-
         <div className="row g-5">
-          {/* Product Image Area */}
+          {/* Image Column */}
           <div className="col-md-6">
-            <div 
-              className="bg-light rounded d-flex align-items-center justify-content-center shadow-sm" 
-              style={{ minHeight: '400px', border: '1px solid #eee' }}
-            >
-              <span className="text-muted">High Quality Gold Image Placeholder</span>
+            <div className="card border-0 shadow-sm p-3">
+              <img 
+                src={product.image || "https://images.unsplash.com/photo-1610375461246-83df859d849d?q=80&w=400"} 
+                alt={product.title} 
+                className="img-fluid rounded shadow-sm"
+              />
             </div>
           </div>
 
-          {/* Product Info Area */}
+          {/* Details Column */}
           <div className="col-md-6">
-            <h1 className="fw-bold mb-2">{product.title}</h1>
-            <p className="text-muted mb-4">Product Code: DM-GOLD-{product.id}00</p>
+            <h1 className="fw-bold mb-3">{product.title}</h1>
+            <div className="d-flex align-items-center mb-4">
+              <span className="badge bg-dark text-gold p-2 px-3 fs-6 me-3">{product.weight} Grams</span>
+              <span className="text-muted">Serial Number: DB-{product.id}</span>
+            </div>
             
-            <div className="card bg-light border-0 mb-4 shadow-sm">
-              <div className="card-body">
-                <h3 className="text-gold fw-bold mb-0">{product.price} EGP</h3>
-                <small className="text-muted">* Price updated 2 minutes ago</small>
-              </div>
-            </div>
+            <h3 className="text-gold fw-bold mb-4">{product.price} EGP</h3>
+            
+            <p className="text-secondary mb-5">
+              This certified 24K gold bar is produced with the highest standards. 
+              Each ingot comes with a certificate of authenticity and secure packaging. 
+              Live market pricing ensures you get the best value.
+            </p>
 
-            <div className="mb-4">
-              <h6 className="fw-bold text-uppercase small">Specifications:</h6>
-              <table className="table table-sm mt-2">
-                <tbody>
-                  <tr><td className="text-muted">Weight:</td><td>{product.weight} Grams</td></tr>
-                  <tr><td className="text-muted">Purity:</td><td>{product.purity || "24K (999.9)"}</td></tr>
-                  <tr><td className="text-muted">Brand:</td><td>Official Mint</td></tr>
-                  <tr><td className="text-muted">Tax/Fees:</td><td>Calculated at checkout</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="d-grid gap-2">
-              <button 
-                className="btn btn-gold btn-lg py-3 fw-bold" 
-                onClick={() => {
-                   console.log("Cart Sync - Adding Item:", product);
-                   addToCart(product);
-                }}
-              >
-                Add to Cart
-              </button>
-              <button className="btn btn-outline-dark py-2">
-                Check Store Availability
-              </button>
-            </div>
+            <button 
+              onClick={() => addToCart(product)}
+              className="btn btn-gold btn-lg w-100 fw-bold py-3 shadow-sm"
+            >
+              Add to Shopping Cart
+            </button>
           </div>
         </div>
       </div>
